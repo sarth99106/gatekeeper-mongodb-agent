@@ -118,8 +118,9 @@ gatekeeper/
 
 ### 2. Clone & Install Dependencies
 ```bash
-git clone https://github.com/[YOUR_USERNAME]/[YOUR_REPO_NAME].git
-cd [YOUR_REPO_NAME]
+git clone https://github.com/sarth99106/gatekeeper-mongodb-agent
+.git
+cd gatekeeper-mongodb-agent
 npm install
 ```
 
