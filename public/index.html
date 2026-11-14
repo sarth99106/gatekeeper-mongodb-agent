@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gatekeeper — Auditable MongoDB Agent</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0b1215;
+        color: #e6edf3;
+        max-width: 1080px;
+        margin: 20px auto;
+        padding: 0 16px;
+      }
+      h1 {
+        color: #00ed64;
+        margin-bottom: 4px;
+      }
+      .sub {
+        color: #8b949e;
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .panel {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 16px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      select,
+      textarea,
+      input[type="text"],
+      input[type="number"],
+      input[type="password"] {
+        background: #0d1117;
+        color: #e6edf3;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-family: inherit;
+      }
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        margin: 8px 0;
+        resize: vertical;
+      }
+      button {
+        padding: 8px 13px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      .btn-ok {
+        background: #00ed64;
+        color: #001e2b;
+      }
+      .btn-kill {
+        background: #d29922;
+        color: #001e2b;
+      }
+      .btn-danger {
+        background: #da3633;
+        color: #ffffff;
+      }
+      .btn-esc {
+        background: #388bfd;
+        color: #ffffff;
+      }
+      .btn-sec {
+        background: #21262d;
+        color: #e6edf3;
+        border: 1px solid #30363d;
+      }
+      .btn-mini {
+        padding: 3px 8px;
+        font-size: 11px;
+        margin-left: 6px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 2.2fr;
+        gap: 16px;
+      }
+      .badge {
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+      }
+      .COMMITTED,
+      .EXECUTED {
+        background: #1f6feb;
+      }
+      .BLOCKED_BY_DB_POLICY,
+      .BLOCKED {
+        background: #da3633;
+      }
+      .ROLLED_BACK {
+        background: #9e6a03;
+      }
+      .NEEDS_CONFIRMATION,
+      .ESCALATED_PENDING {
+        background: #d29922;
+        color: #001e2b;
+      }
+      .alert-card {
+        background: #161b22;
+        border-left: 4px solid #00ed64;
+        border-top: 1px solid #30363d;
+        border-right: 1px solid #30363d;
+        border-bottom: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 14px;
+        margin-bottom: 16px;
+      }
+      .alert-card.blocked {
+        border-left-color: #da3633;
+      }
+      .alert-card.confirm {
+        border-left-color: #d29922;
+      }
+      .alert-card.lead-inbox {
+        border-left-color: #388bfd;
+        background: #121d2f;
+      }
+      .alert-title {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .alert-msg {
+        color: #e6edf3;
+        margin-bottom: 10px;
+        line-height: 1.45;
+      }
+      .esc-item {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 10px;
+        margin-top: 8px;
+      }
+      .add-acct-box {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      details {
+        margin-top: 10px;
+        color: #8b949e;
+        font-size: 12px;
+      }
+      summary {
+        cursor: pointer;
+        user-select: none;
+      }
+      pre {
+        background: #0d1117;
+        padding: 10px;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-size: 12px;
+        max-height: 200px;
+        color: #c9d1d9;
+      }
+      .entry {
+        border-bottom: 1px solid #30363d;
+        padding: 10px 0;
+      }
+      .reason {
+        color: #a5d6ff;
+        font-style: italic;
+        display: block;
+        margin-top: 4px;
+      }
+      .verdict-blocked {
+        color: #ff7b72;
+        font-weight: 500;
+        display: block;
+        margin-top: 3px;
+      }
+      .verdict-ok {
+        color: #7ee787;
+        display: block;
+        margin-top: 3px;
+      }
+      .verdict-esc {
+        color: #f2cc60;
+        font-weight: 500;
+        display: block;
+        margin-top: 3px;
+      }
+      .voice-pill {
+        background: #1f2937;
+        border: 1px solid #374151;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        color: #93c5fd;
+      }
+      .hidden {
+        display: none !important;
+      }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.72);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+      }
+      .modal-card {
+        background: #161b22;
+        border: 1px solid #388bfd;
+        border-radius: 10px;
+        padding: 20px;
+        width: 380px;
+        max-width: 92vw;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Finance Lead PIN Modal -->
+    <div id="leadPinModal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <h3 style="margin-top: 0; color: #388bfd">
+          🔒 Finance Lead Authentication
+        </h3>
+        <p style="font-size: 13px; color: #c9d1d9; margin-bottom: 12px">
+          Enter the <code>finance_lead</code> security PIN to unlock policy
+          controls and escalation approvals (default demo PIN:
+          <strong>1234</strong>):
+        </p>
+        <input
+          type="password"
+          id="leadPinInput"
+          placeholder="Enter PIN..."
+          style="width: 100%; box-sizing: border-box; margin-bottom: 8px"
+          onkeydown="if(event.key==='Enter') submitLeadPin()"
+        />
+        <div
+          id="leadPinError"
+          style="color: #ff7b72; font-size: 12px; margin-bottom: 10px"
+        ></div>
+        <div class="row" style="justify-content: flex-end">
+          <button class="btn-sec" onclick="cancelLeadPin()">Cancel</button>
+          <button class="btn-esc" onclick="submitLeadPin()">
+            Unlock finance_lead
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rollback Reason Prompt Modal -->
+    <div id="rollbackReasonModal" class="modal-backdrop hidden">
+      <div class="modal-card" style="border-color: #d29922">
+        <h3 style="margin-top: 0; color: #f2cc60">
+          ↩ Confirm Rollback & Audit Reason
+        </h3>
+        <p
+          id="rollbackModalSubtitle"
+          style="font-size: 13px; color: #c9d1d9; margin-bottom: 12px"
+        >
+          Enter a required audit reason explaining why this transaction is being
+          rolled back:
+        </p>
+        <input
+          type="text"
+          id="rollbackReasonInput"
+          placeholder="e.g. Duplicate ticket approved in error..."
+          style="width: 100%; box-sizing: border-box; margin-bottom: 8px"
+          onkeydown="if(event.key==='Enter') submitRollbackModal()"
+        />
+        <div
+          id="rollbackReasonError"
+          style="color: #ff7b72; font-size: 12px; margin-bottom: 10px"
+        ></div>
+        <div class="row" style="justify-content: flex-end">
+          <button class="btn-sec" onclick="closeRollbackModal()">Cancel</button>
+          <button class="btn-kill" onclick="submitRollbackModal()">
+            Confirm Rollback
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <h1>Gatekeeper: Policy-Gated Agent Audit Ledger</h1>
+    <div class="sub">
+      <span>Active Trace: <strong id="traceLabel"></strong></span>
+      <button class="btn-sec" onclick="newTrace()">+ New Agent Session</button>
+      <span
+        >| <code>support_tier_1</code> Cap:
+        <strong>$<span id="capLabel">500</span></strong></span
+      >
+
+      <!-- Visible ONLY when Session IAM Role === finance_lead (after PIN unlock) -->
+      <span id="capEditorControls" class="row hidden">
+        <input
+          type="number"
+          id="customCapInput"
+          value="250"
+          min="1"
+          style="width: 85px"
+        />
+        <button class="btn-esc" onclick="setCap()">
+          Update support_tier_1 Cap
+        </button>
+      </span>
+
+      <label class="voice-pill">
+        <input type="checkbox" id="voiceToggle" checked /> ElevenLabs Voice
+        Alerts
+      </label>
+    </div>
+
+    <!-- Notification Inbox shown automatically when finance_lead is unlocked -->
+    <div id="leadNotificationBox" class="hidden"></div>
+
+    <div class="panel">
+      <strong
+        >Autonomous FinOps Agent (LangChain + Groq + MongoDB Policy Gate +
+        ElevenLabs)</strong
+      >
+      <div class="row" style="margin-top: 8px">
+        <label>Session IAM Role:</label>
+        <select id="iamRole" onchange="onRoleChange()">
+          <option value="support_tier_1">support_tier_1 (Capped)</option>
+          <option value="finance_lead">
+            finance_lead (PIN Protected + Unlimited)
+          </option>
+          <option value="untrusted_bot">untrusted_bot (Unauthorized)</option>
+        </select>
+        <button class="btn-sec" onclick="fillPreset('valid')">
+          Valid Refund ($60)
+        </button>
+        <button class="btn-sec" onclick="fillPreset('discrepancy')">
+          Discrepancy ($70 vs $60)
+        </button>
+        <button class="btn-sec" onclick="fillPreset('mismatch')">
+          Wrong Name ("AB")
+        </button>
+        <button class="btn-sec" onclick="fillPreset('charge')">
+          Deduct / Charge ($100)
+        </button>
+        <button class="btn-sec" onclick="fillPreset('escalation')">
+          Over-Cap Request ($800)
+        </button>
+      </div>
+      <textarea id="ticketInput" rows="2">
+Customer Alice Chen (ACCT-101) was billed twice for her $60 pro plan. Please issue a $60 refund.</textarea
+      >
+      <div class="row">
+        <button id="runAgentBtn" class="btn-ok" onclick="runAgent()">
+          Process Ticket with AI Agent
+        </button>
+        <button class="btn-kill" onclick="rollbackRun()">
+          Emergency Kill & Rollback Current Run
+        </button>
+      </div>
+    </div>
+
+    <div id="banner"></div>
+
+    <div class="grid">
+      <div class="panel">
+        <div
+          class="row"
+          style="justify-content: space-between; margin-bottom: 10px"
+        >
+          <h3 style="margin: 0">Live Customer Accounts</h3>
+          <button class="btn-ok btn-mini" onclick="toggleAddAccountForm()">
+            + Add Account
+          </button>
+        </div>
+
+        <div id="addAccountForm" class="add-acct-box hidden">
+          <strong style="font-size: 13px">Create Customer Account</strong>
+          <input
+            type="text"
+            id="newAcctId"
+            placeholder="Account ID (optional, auto-assigned if blank)"
+          />
+          <input
+            type="text"
+            id="newAcctName"
+            placeholder="Customer Full Name (e.g. Danny)"
+          />
+          <input
+            type="number"
+            id="newAcctBalance"
+            placeholder="Initial Balance ($)"
+            min="0"
+            value="500"
+          />
+          <input
+            type="text"
+            id="newAcctReason"
+            placeholder="Onboarding reason (optional)"
+          />
+          <div class="row">
+            <button
+              id="submitAcctBtn"
+              class="btn-ok"
+              onclick="submitNewAccount()"
+            >
+              Submit Account
+            </button>
+            <button class="btn-sec" onclick="toggleAddAccountForm()">
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <div id="accounts"></div>
+      </div>
+
+      <div class="panel">
+        <h3>MongoDB Audit Ledger (Who, Why, Policy Gate & Rollback)</h3>
+        <div class="row" style="margin-bottom: 10px">
+          <input
+            type="text"
+            id="auditSearchInput"
+            placeholder="Semantic audit search via Voyage AI (e.g. 'rollbacked transactions', 'Bob')..."
+            style="flex: 1"
+            oninput="if(!this.value.trim()) refreshState()"
+            onkeydown="if(event.key==='Enter') searchAudit()"
+          />
+          <button id="searchAuditBtn" class="btn-esc" onclick="searchAudit()">
+            Search (Voyage AI)
+          </button>
+        </div>
+        <div
+          id="searchMeta"
+          style="font-size: 12px; color: #7ee787; margin-bottom: 6px"
+        ></div>
+        <div
+          id="bulkRollbackBar"
+          class="row hidden"
+          style="
+            background: #1f1912;
+            border: 1px solid #9e6a03;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            justify-content: space-between;
+          "
+        >
+          <span style="font-size: 13px; color: #f2cc60"
+            ><strong id="selectedCountLabel">0</strong> transaction(s)
+            selected</span
+          >
+          <div class="row">
+            <button
+              class="btn-kill btn-mini"
+              onclick="rollbackSelectedEntries()"
+            >
+              ↩ Rollback Selected
+            </button>
+            <button class="btn-sec btn-mini" onclick="clearRollbackSelection()">
+              Clear
+            </button>
+          </div>
+        </div>
+        <div id="ledger"></div>
+      </div>
+    </div>
+
+    <script>
+      let traceId = "";
+      let currentAudio = null;
+      let lastPendingIntent = null;
+      let cachedEscalations = [];
+      let previousRole = "support_tier_1";
+      let verifiedLeadPin = "";
+      const selectedRollbackIds = new Set();
+      let pendingRollbackContext = null;
+
+      function newTrace() {
+        traceId = "RUN-" + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById("traceLabel").innerText = traceId;
+        document.getElementById("banner").innerHTML = "";
+        lastPendingIntent = null;
+      }
+      newTrace();
+
+      function toggleAddAccountForm() {
+        const box = document.getElementById("addAccountForm");
+        box.classList.toggle("hidden");
+        const role = document.getElementById("iamRole").value;
+        document.getElementById("submitAcctBtn").innerText =
+          role === "finance_lead"
+            ? "Create Account Directly"
+            : "Request Lead Approval";
+      }
+
+      async function submitNewAccount() {
+        const authorized_by = document.getElementById("iamRole").value;
+        const account_id = document.getElementById("newAcctId").value.trim();
+        const customer_name = document
+          .getElementById("newAcctName")
+          .value.trim();
+        const initial_balance = Number(
+          document.getElementById("newAcctBalance").value
+        );
+        const reason = document.getElementById("newAcctReason").value.trim();
+
+        const btn = document.getElementById("submitAcctBtn");
+        btn.disabled = true;
+        try {
+          const res = await fetch("/api/accounts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              trace_id: traceId,
+              authorized_by,
+              lead_pin: verifiedLeadPin,
+              account_id,
+              customer_name,
+              initial_balance,
+              reason,
+            }),
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            document.getElementById("banner").innerHTML = `
+            <div class="alert-card blocked">
+              <div class="alert-title"><span class="badge BLOCKED">ACCOUNT CREATION BLOCKED</span></div>
+              <div class="alert-msg">${data.error}</div>
+            </div>`;
+            speakAlert(data.error);
+            refreshState();
+            return;
+          }
+
+          const isQueued = data.status === "ESCALATED_PENDING";
+          document.getElementById("banner").innerHTML = `
+          <div class="alert-card ${isQueued ? "confirm" : ""}">
+            <div class="alert-title"><span class="badge ${
+              isQueued ? "ESCALATED_PENDING" : "EXECUTED"
+            }">${
+            isQueued ? "SENT TO FINANCE LEAD" : "ACCOUNT CREATED"
+          }</span></div>
+            <div class="alert-msg">${data.message}</div>
+          </div>`;
+          speakAlert(data.message);
+
+          document.getElementById("newAcctId").value = "";
+          document.getElementById("newAcctName").value = "";
+          document.getElementById("newAcctReason").value = "";
+          document.getElementById("addAccountForm").classList.add("hidden");
+          refreshState();
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function syncRoleVisibility(announceLeadAlert = false) {
+        const role = document.getElementById("iamRole").value;
+        const capControls = document.getElementById("capEditorControls");
+        const leadBox = document.getElementById("leadNotificationBox");
+        const submitAcctBtn = document.getElementById("submitAcctBtn");
+
+        if (role === "finance_lead" && verifiedLeadPin) {
+          capControls.classList.remove("hidden");
+          if (submitAcctBtn)
+            submitAcctBtn.innerText = "Create Account Directly";
+          renderLeadInbox();
+          if (announceLeadAlert && cachedEscalations.length > 0) {
+            speakAlert(
+              `Attention finance lead. You have ${cachedEscalations.length} pending request awaiting your approval.`
+            );
+          }
+        } else {
+          capControls.classList.add("hidden");
+          leadBox.classList.add("hidden");
+          if (submitAcctBtn) submitAcctBtn.innerText = "Request Lead Approval";
+        }
+      }
+
+      function onRoleChange() {
+        const selectEl = document.getElementById("iamRole");
+        const chosen = selectEl.value;
+
+        if (chosen === "finance_lead") {
+          document.getElementById("leadPinInput").value = "";
+          document.getElementById("leadPinError").innerText = "";
+          document.getElementById("leadPinModal").classList.remove("hidden");
+          setTimeout(() => document.getElementById("leadPinInput").focus(), 50);
+          return;
+        }
+
+        verifiedLeadPin = "";
+        previousRole = chosen;
+        syncRoleVisibility(false);
+      }
+
+      function cancelLeadPin() {
+        document.getElementById("leadPinModal").classList.add("hidden");
+        document.getElementById("iamRole").value = previousRole;
+        verifiedLeadPin = "";
+        syncRoleVisibility(false);
+      }
+
+      async function submitLeadPin() {
+        const pin = document.getElementById("leadPinInput").value.trim();
+        const errEl = document.getElementById("leadPinError");
+        if (!pin) {
+          errEl.innerText = "Please enter the finance_lead PIN.";
+          return;
+        }
+
+        const res = await fetch("/api/auth/verify-lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.valid) {
+          errEl.innerText = data.error || "Invalid PIN. Access denied.";
+          speakAlert("Authentication failed. Invalid finance lead PIN.");
+          return;
+        }
+
+        verifiedLeadPin = pin;
+        previousRole = "finance_lead";
+        document.getElementById("leadPinModal").classList.add("hidden");
+        syncRoleVisibility(true);
+      }
+
+      function renderLeadInbox() {
+        const role = document.getElementById("iamRole").value;
+        const leadBox = document.getElementById("leadNotificationBox");
+        if (
+          role !== "finance_lead" ||
+          !verifiedLeadPin ||
+          cachedEscalations.length === 0
+        ) {
+          leadBox.classList.add("hidden");
+          leadBox.innerHTML = "";
+          return;
+        }
+
+        leadBox.classList.remove("hidden");
+        const itemsHtml = cachedEscalations
+          .map((e) => {
+            const isAddAcct =
+              e.request_type === "ADD_ACCOUNT" || e.action === "ADD_ACCOUNT";
+            const custLabel =
+              e.customer_name &&
+              e.customer_name.toUpperCase() !==
+                (e.target_account || "").toUpperCase()
+                ? ` (${e.customer_name})`
+                : "";
+            const titleLine = isAddAcct
+              ? `<strong>ADD_ACCOUNT: ${e.customer_name} (${e.target_account})</strong> — Initial Balance: <strong>$${e.amount}</strong>`
+              : `<strong>${e.action} $${e.amount}</strong> on <strong>${e.target_account}</strong>${custLabel}`;
+            return `
+        <div class="esc-item">
+          <div class="row" style="justify-content: space-between;">
+            <div>
+              ${titleLine}<br/>
+              <small style="color:#8b949e;">Requested by: <strong>${e.requested_by}</strong> | Trace: ${e.trace_id}</small><br/>
+              <small style="color:#a5d6ff;">Reason: "${e.reason}"</small>
+            </div>
+            <div class="row">
+              <input type="text" id="leadNote-${e._id}" placeholder="Optional lead note..." style="width: 170px;" />
+              <button class="btn-ok" onclick="resolveEscalation('${e._id}', 'APPROVE')">Approve & Execute</button>
+              <button class="btn-danger" onclick="resolveEscalation('${e._id}', 'REJECT')">Reject</button>
+            </div>
+          </div>
+        </div>`;
+          })
+          .join("");
+
+        leadBox.innerHTML = `
+        <div class="alert-card lead-inbox">
+          <div class="alert-title"><span class="badge ESCALATED_PENDING">FINANCE LEAD NOTIFICATION (${cachedEscalations.length} PENDING)</span></div>
+          <div class="alert-msg">Support staff submitted request(s) requiring <code>finance_lead</code> approval:</div>
+          ${itemsHtml}
+        </div>`;
+      }
+
+      async function speakAlert(text, force = false) {
+        if (!force && !document.getElementById("voiceToggle").checked) return;
+        try {
+          const res = await fetch("/api/voice/alert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+          if (!res.ok) return;
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          if (currentAudio) currentAudio.pause();
+          currentAudio = new Audio(url);
+          currentAudio.play();
+        } catch (e) {
+          console.warn("Voice alert skipped:", e);
+        }
+      }
+
+      function fillPreset(type) {
+        document.getElementById("iamRole").value = "support_tier_1";
+        previousRole = "support_tier_1";
+        verifiedLeadPin = "";
+        syncRoleVisibility(false);
+
+        if (type === "valid") {
+          document.getElementById("ticketInput").value =
+            "Customer Alice Chen (ACCT-101) was billed twice for her $60 pro plan. Please issue a $60 refund.";
+        } else if (type === "discrepancy") {
+          document.getElementById("ticketInput").value =
+            "Customer Alice Chen (ACCT-101) was billed twice for her $70 pro plan. Please issue a $60 refund.";
+        } else if (type === "mismatch") {
+          document.getElementById("ticketInput").value =
+            "Customer AB (ACCT-101) was billed twice for her $60 pro plan. Please issue a $60 refund.";
+        } else if (type === "charge") {
+          document.getElementById("ticketInput").value =
+            "Charge $100 from Bob Patel";
+        } else if (type === "escalation") {
+          document.getElementById("ticketInput").value =
+            "Customer Bob Patel (ACCT-202) had an enterprise billing error. Please issue an $800 refund.";
+        }
+      }
+
+      function renderHumanCard(data) {
+        if (data.status === "NEEDS_CONFIRMATION") {
+          lastPendingIntent = data.pending_intent;
+          const reasonInputHtml = data.require_reason
+            ? `<div style="margin-bottom:10px;">
+               <input type="text" id="operatorReasonInput" placeholder="Enter required audit reason for charging/deducting customer..." style="width: 100%; box-sizing: border-box;" />
+             </div>`
+            : "";
+
+          const buttonsHtml = (data.options || [])
+            .map(
+              (opt, idx) =>
+                `<button class="${
+                  idx === 0 ? "btn-ok" : "btn-sec"
+                }" onclick='confirmChoice(${JSON.stringify(
+                  opt.target_account
+                )}, ${opt.amount}, ${Boolean(data.require_reason)})'>${
+                  opt.label
+                }</button>`
+            )
+            .join(" ");
+
+          document.getElementById("banner").innerHTML = `
+          <div class="alert-card confirm">
+            <div class="alert-title"><span class="badge NEEDS_CONFIRMATION">ACTION PAUSED — CONFIRMATION REQUIRED</span></div>
+            <div class="alert-msg">${data.message}</div>
+            ${reasonInputHtml}
+            <div class="row">
+              ${buttonsHtml}
+              <button class="btn-kill" onclick="cancelPending()">Cancel Request</button>
+            </div>
+            <details><summary>View Technical Audit Payload</summary><pre>${JSON.stringify(
+              data,
+              null,
+              2
+            )}</pre></details>
+          </div>`;
+          return;
+        }
+
+        const gate = data.mongodb_gate_result || {};
+        const isEscalated = data.status === "ESCALATED_PENDING";
+        const allowed = gate.allowed === true;
+        const cardClass = isEscalated
+          ? "alert-card confirm"
+          : allowed
+          ? "alert-card"
+          : "alert-card blocked";
+        const badgeLabel = isEscalated
+          ? "SENT TO FINANCE LEAD"
+          : allowed
+          ? "APPROVED & EXECUTED"
+          : "BLOCKED BY POLICY GATE";
+        const badgeClass = isEscalated
+          ? "ESCALATED_PENDING"
+          : allowed
+          ? "EXECUTED"
+          : "BLOCKED";
+        const titleText =
+          gate.summary || data.message || data.error || "Request processed.";
+        const reasonText = data.llm_decision?.agent_reasoning
+          ? `<div style="color:#a5d6ff; font-size:13px; margin-bottom:6px;"><strong>Agent Reasoning:</strong> ${data.llm_decision.agent_reasoning}</div>`
+          : "";
+
+        let escalateHtml = "";
+        if (
+          !allowed &&
+          !isEscalated &&
+          gate.can_escalate_to_finance &&
+          gate.proposed_intent
+        ) {
+          lastPendingIntent = gate.proposed_intent;
+          escalateHtml = `
+          <div class="row" style="margin-top: 8px;">
+            <button class="btn-esc" onclick="sendEscalationToLead()">Send Escalation Request to finance_lead ($${gate.proposed_intent.amount})</button>
+          </div>`;
+        }
+
+        document.getElementById("banner").innerHTML = `
+        <div class="${cardClass}">
+          <div class="alert-title"><span class="badge ${badgeClass}">${badgeLabel}</span></div>
+          <div class="alert-msg">${titleText}</div>
+          ${reasonText}
+          ${escalateHtml}
+          <details><summary>View Technical Audit Payload</summary><pre>${JSON.stringify(
+            data,
+            null,
+            2
+          )}</pre></details>
+        </div>`;
+      }
+
+      function cancelPending() {
+        lastPendingIntent = null;
+        document.getElementById("banner").innerHTML = `
+        <div class="alert-card blocked">
+          <div class="alert-title"><span class="badge BLOCKED">CANCELLED BY OPERATOR</span></div>
+          <div class="alert-msg">Pending request was cancelled before execution. No account balances were modified.</div>
+        </div>`;
+      }
+
+      async function confirmChoice(
+        target_account,
+        amount,
+        requireReason = false
+      ) {
+        if (!lastPendingIntent) return;
+        let operator_reason = "";
+        if (requireReason) {
+          const inputEl = document.getElementById("operatorReasonInput");
+          operator_reason = inputEl ? inputEl.value.trim() : "";
+          if (!operator_reason) {
+            alert(
+              "Please enter an audit reason before confirming a customer deduction/charge."
+            );
+            inputEl?.focus();
+            return;
+          }
+        }
+
+        const payload = {
+          ...lastPendingIntent,
+          lead_pin: verifiedLeadPin,
+          target_account,
+          amount,
+          operator_reason,
+        };
+        lastPendingIntent = null;
+
+        const res = await fetch("/api/agent/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        renderHumanCard(data);
+        setTimeout(refreshState, 400);
+        setTimeout(refreshState, 1200);
+
+        const gate = data.mongodb_gate_result || {};
+        if (gate.allowed) {
+          speakAlert(`Confirmed. ${gate.summary}`);
+        } else {
+          speakAlert(
+            `Security alert! ${
+              gate.policy_verdict || "Blocked by policy gate."
+            }`
+          );
+        }
+      }
+
+      async function sendEscalationToLead() {
+        if (!lastPendingIntent) return;
+        const payload = {
+          ...lastPendingIntent,
+          requested_by: lastPendingIntent.authorized_by,
+        };
+        lastPendingIntent = null;
+
+        const res = await fetch("/api/escalations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        document.getElementById("banner").innerHTML = `
+        <div class="alert-card confirm">
+          <div class="alert-title"><span class="badge ESCALATED_PENDING">ESCALATION SENT TO FINANCE LEAD</span></div>
+          <div class="alert-msg">${data.message}</div>
+        </div>`;
+        speakAlert("Escalation request sent to finance lead for review.");
+        refreshState();
+      }
+
+      async function resolveEscalation(id, decision) {
+        const authorized_by = document.getElementById("iamRole").value;
+        const noteEl = document.getElementById(`leadNote-${id}`);
+        const lead_note = noteEl ? noteEl.value.trim() : "";
+
+        const res = await fetch(`/api/escalations/${id}/resolve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            decision,
+            authorized_by,
+            lead_pin: verifiedLeadPin,
+            lead_note,
+          }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.error || "Failed to resolve escalation");
+          return;
+        }
+
+        document.getElementById("banner").innerHTML = `
+        <div class="${
+          decision === "APPROVED" ? "alert-card" : "alert-card blocked"
+        }">
+          <div class="alert-title"><span class="badge ${
+            decision === "APPROVED" ? "EXECUTED" : "BLOCKED"
+          }">${decision} BY FINANCE LEAD</span></div>
+          <div class="alert-msg">${data.message}</div>
+        </div>`;
+        speakAlert(data.message);
+        setTimeout(refreshState, 400);
+        setTimeout(refreshState, 1200);
+      }
+
+      async function runAgent() {
+        const btn = document.getElementById("runAgentBtn");
+        btn.disabled = true;
+        btn.innerText = "Checking Ticket & Policy Rules...";
+        try {
+          const res = await fetch("/api/agent/ticket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              trace_id: traceId,
+              authorized_by: document.getElementById("iamRole").value,
+              lead_pin: verifiedLeadPin,
+              ticket_text: document.getElementById("ticketInput").value,
+            }),
+          });
+          const data = await res.json();
+          renderHumanCard(data);
+          setTimeout(refreshState, 400);
+          setTimeout(refreshState, 1200);
+
+          if (data.status === "NEEDS_CONFIRMATION") {
+            speakAlert(`Confirmation required. ${data.message}`);
+            return;
+          }
+
+          const gate = data.mongodb_gate_result || {};
+          if (data.status === "ESCALATED_PENDING" || gate.allowed) {
+            speakAlert(gate.summary);
+          } else {
+            speakAlert(
+              `Security alert! ${
+                gate.policy_verdict || "Blocked by policy gate."
+              }`
+            );
+          }
+        } finally {
+          btn.disabled = false;
+          btn.innerText = "Process Ticket with AI Agent";
+        }
+      }
+
+      async function setCap() {
+        const max_amount = Number(
+          document.getElementById("customCapInput").value
+        );
+        const authorized_by = document.getElementById("iamRole").value;
+        const res = await fetch("/api/policy/cap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            max_amount,
+            authorized_by,
+            lead_pin: verifiedLeadPin,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          document.getElementById("banner").innerHTML = `
+          <div class="alert-card blocked">
+            <div class="alert-title"><span class="badge BLOCKED">POLICY CHANGE DENIED</span></div>
+            <div class="alert-msg">${data.error}</div>
+          </div>`;
+          speakAlert(data.error);
+          return;
+        }
+
+        document.getElementById("banner").innerHTML = `
+        <div class="alert-card">
+          <div class="alert-title"><span class="badge EXECUTED">POLICY UPDATED BY FINANCE_LEAD</span></div>
+          <div class="alert-msg">${data.message}</div>
+        </div>`;
+        speakAlert(data.message);
+        refreshState();
+      }
+
+      function openRollbackModal(context) {
+        pendingRollbackContext = context;
+        document.getElementById("rollbackReasonInput").value = "";
+        document.getElementById("rollbackReasonError").innerText = "";
+        document.getElementById("rollbackModalSubtitle").innerText =
+          context.mode === "RUN"
+            ? `Enter a required audit reason to halt session ${traceId} and reverse all committed actions:`
+            : `Enter a required audit reason to roll back ${context.ids.length} selected transaction(s):`;
+        document
+          .getElementById("rollbackReasonModal")
+          .classList.remove("hidden");
+        setTimeout(
+          () => document.getElementById("rollbackReasonInput").focus(),
+          50
+        );
+      }
+
+      function closeRollbackModal() {
+        pendingRollbackContext = null;
+        document.getElementById("rollbackReasonModal").classList.add("hidden");
+      }
+
+      function rollbackRun() {
+        openRollbackModal({ mode: "RUN" });
+      }
+
+      function toggleRollbackCheckbox(id, checked) {
+        if (checked) {
+          selectedRollbackIds.add(id);
+        } else {
+          selectedRollbackIds.delete(id);
+        }
+        updateBulkRollbackBar();
+      }
+
+      function clearRollbackSelection() {
+        selectedRollbackIds.clear();
+        document.querySelectorAll(".rollback-chk").forEach((cb) => {
+          cb.checked = false;
+        });
+        updateBulkRollbackBar();
+      }
+
+      function updateBulkRollbackBar() {
+        const bar = document.getElementById("bulkRollbackBar");
+        const countEl = document.getElementById("selectedCountLabel");
+        if (!bar || !countEl) return;
+        if (selectedRollbackIds.size > 0) {
+          countEl.innerText = selectedRollbackIds.size;
+          bar.classList.remove("hidden");
+        } else {
+          bar.classList.add("hidden");
+        }
+      }
+
+      function rollbackEntries(ids) {
+        if (!ids || ids.length === 0) return;
+        openRollbackModal({ mode: "SELECTED", ids });
+      }
+
+      function rollbackSelectedEntries() {
+        rollbackEntries([...selectedRollbackIds]);
+      }
+
+      async function submitRollbackModal() {
+        const rollback_reason = document
+          .getElementById("rollbackReasonInput")
+          .value.trim();
+        const errEl = document.getElementById("rollbackReasonError");
+        if (!rollback_reason) {
+          errEl.innerText =
+            "Please enter a rollback reason for the audit ledger.";
+          return;
+        }
+
+        const context = pendingRollbackContext;
+        closeRollbackModal();
+        if (!context) return;
+
+        const authorized_by = document.getElementById("iamRole").value;
+
+        if (context.mode === "RUN") {
+          const res = await fetch(`/api/agent/rollback/${traceId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ authorized_by, rollback_reason }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            alert(data.error || "Failed to roll back session.");
+            return;
+          }
+          document.getElementById("banner").innerHTML = `
+          <div class="alert-card confirm">
+            <div class="alert-title"><span class="badge ROLLED_BACK">KILL-SWITCH & ROLLBACK</span></div>
+            <div class="alert-msg">${data.message}</div>
+          </div>`;
+          speakAlert(data.message);
+          setTimeout(refreshState, 300);
+          return;
+        }
+
+        const res = await fetch("/api/audit/rollback-selected", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entry_ids: context.ids,
+            authorized_by,
+            rollback_reason,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Failed to roll back selected transaction(s).");
+          return;
+        }
+
+        context.ids.forEach((id) => selectedRollbackIds.delete(id));
+        updateBulkRollbackBar();
+
+        document.getElementById("banner").innerHTML = `
+        <div class="alert-card confirm">
+          <div class="alert-title"><span class="badge ROLLED_BACK">SELECTIVE ROLLBACK COMPLETE</span></div>
+          <div class="alert-msg">${data.message}</div>
+        </div>`;
+        speakAlert(data.message);
+        setTimeout(refreshState, 300);
+      }
+
+      function renderLedgerItems(items) {
+        const ledgerEl = document.getElementById("ledger");
+        if (!ledgerEl) return;
+
+        if (!items || items.length === 0) {
+          ledgerEl.innerHTML =
+            '<small style="color:#8b949e;">No audit entries found.</small>';
+          return;
+        }
+
+        ledgerEl.innerHTML = items
+          .map((l) => {
+            const verdictText = l.policy_verdict || "";
+            const verdictClass =
+              l.status === "BLOCKED_BY_DB_POLICY"
+                ? "verdict-blocked"
+                : l.status === "ESCALATED_PENDING"
+                ? "verdict-esc"
+                : "verdict-ok";
+            const capDisplay =
+              l.policy_cap_at_execution === null
+                ? "Unlimited"
+                : `$${l.policy_cap_at_execution || 500}`;
+            const whoDisplay = l.escalated_from
+              ? `${l.authorized_by} (escalated from ${l.escalated_from})`
+              : l.authorized_by;
+            const rollbackByDisplay = l.rolled_back_by
+              ? ` | <strong style="color:#f2cc60;">Rolled Back By: ${l.rolled_back_by}</strong>`
+              : "";
+
+            const cleanCustomer =
+              l.customer_name &&
+              l.customer_name.trim().toUpperCase() !==
+                (l.target_account || "").trim().toUpperCase()
+                ? ` (${l.customer_name.trim()})`
+                : "";
+
+            const scoreBadge =
+              typeof l.score === "number"
+                ? `<span style="background:#1f2937; color:#93c5fd; padding:2px 6px; border-radius:4px; font-size:11px; margin-left:6px;">Match: ${(
+                    l.score * 100
+                  ).toFixed(1)}%</span>`
+                : "";
+
+            const rollbackSpoken = l.rolled_back_by
+              ? ` Rolled back by ${l.rolled_back_by}${
+                  l.rollback_reason ? ` due to ${l.rollback_reason}` : ""
+                }.`
+              : "";
+            const narration = `${l.action} of $${l.amount} on ${l.target_account}${cleanCustomer}. Status: ${l.status}. Authorized by ${whoDisplay}.${rollbackSpoken} Reason: ${l.reason}`;
+
+            const isCommitted = l.status === "COMMITTED";
+            const isChecked = selectedRollbackIds.has(l._id) ? "checked" : "";
+            const checkboxHtml = isCommitted
+              ? `<input type="checkbox" class="rollback-chk" ${isChecked} onchange="toggleRollbackCheckbox('${l._id}', this.checked)" title="Select for batch rollback" style="margin-right: 6px; cursor: pointer;" />`
+              : "";
+            const singleRollbackBtn = isCommitted
+              ? `<button class="btn-kill btn-mini" onclick="rollbackEntries(['${l._id}'])">↩ Rollback</button>`
+              : "";
+
+            return `<div class="entry">
+          ${checkboxHtml}<span class="badge ${l.status}">${
+              l.status
+            }</span> <strong>${l.action}</strong> $${l.amount} on ${
+              l.target_account
+            }${cleanCustomer}${scoreBadge}
+          <button class="btn-sec btn-mini" onclick='speakAlert(${JSON.stringify(
+            narration
+          )}, true)'>🔊 Narrate</button>${singleRollbackBtn}<br/>
+          <small>Who: ${whoDisplay}${rollbackByDisplay} | Trace: ${
+              l.trace_id
+            } | Cap: ${capDisplay}</small>
+          <small style="display:block; color:#c9d1d9; margin-top:2px;">Audit Reason: ${
+            l.reason
+          }</small>
+          ${
+            l.rollback_reason
+              ? `<small style="display:block; color:#f2cc60; margin-top:2px;">Rollback Reason: ${l.rollback_reason}</small>`
+              : ""
+          }
+          ${
+            l.agent_reasoning
+              ? `<small class="reason">Why (Agent Intent): "${l.agent_reasoning}"</small>`
+              : ""
+          }
+          ${
+            verdictText
+              ? `<small class="${verdictClass}">Policy Decision: ${verdictText}</small>`
+              : ""
+          }
+          ${
+            l.pre_state
+              ? `<small>State: $${l.pre_state.balance} → $${l.post_state.balance}</small>`
+              : ""
+          }
+        </div>`;
+          })
+          .join("");
+
+        updateBulkRollbackBar();
+      }
+
+      async function searchAudit() {
+        const query = document.getElementById("auditSearchInput").value.trim();
+        if (!query) return refreshState();
+
+        const btn = document.getElementById("searchAuditBtn");
+        const meta = document.getElementById("searchMeta");
+        btn.disabled = true;
+        btn.innerText = "Searching...";
+        meta.style.color = "#93c5fd";
+        meta.innerText =
+          "Querying Voyage AI embeddings & MongoDB audit ledger...";
+
+        try {
+          const res = await fetch("/api/audit/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            meta.style.color = "#ff7b72";
+            meta.innerText = data.error || "Semantic search failed";
+            return;
+          }
+          meta.style.color = "#7ee787";
+          meta.innerText = `Showing top matches via ${data.engine}`;
+          renderLedgerItems(data.results || []);
+        } catch (err) {
+          meta.style.color = "#ff7b72";
+          meta.innerText = `Search error: ${err.message}`;
+        } finally {
+          btn.disabled = false;
+          btn.innerText = "Search (Voyage AI)";
+        }
+      }
+
+      async function refreshState() {
+        document.getElementById("searchMeta").innerText = "";
+        const res = await fetch("/api/state");
+        const { accounts, ledger, currentMaxCap, pendingEscalations } =
+          await res.json();
+        document.getElementById("capLabel").innerText = currentMaxCap;
+        cachedEscalations = pendingEscalations || [];
+        syncRoleVisibility(false);
+
+        document.getElementById("accounts").innerHTML = accounts
+          .map(
+            (a) =>
+              `<div class="entry"><strong>${a.account_id}</strong> (${a.customer})<br/>Balance: <strong>$${a.balance}</strong></div>`
+          )
+          .join("");
+
+        renderLedgerItems(ledger);
+      }
+
+      syncRoleVisibility(false);
+      refreshState();
+    </script>
+  </body>
+</html>
